@@ -83,7 +83,7 @@ int main(int argc, char* argv[]) {
 
   char track[] = "포렌식"; // "취약점", "컨설팅", "포렌식"
   char name[] = "김영웅";
-  printf("[bob7][%s]pcap_test[%s]", track, name);
+  printf("[bob7][%s]pcap_test[%s]\n", track, name);
 
   if (argc != 2) {
     usage();
