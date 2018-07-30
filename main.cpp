@@ -26,10 +26,9 @@ typedef struct _EthHead{
   } EthHead;
 
 
-typedef struct _IpHead{
-  u_char  ip_eth[sizeof(EthHead)-1];
+typedef struct _IpHead{ 
+  u_char  ip_hLength : 4;
   u_char  ip_ver : 4;
-  u_short ip_hLength : 4;
   u_char  ip_DiffServiceCOP : 6;
   u_char  ECN : 2;
   uint16_t  ip_tLength;
@@ -47,11 +46,15 @@ typedef struct _IpHead{
 } IpHead;
 
 typedef struct _TcpHead{
-//  u_char tct_ip[sizeof(IpHead)-1];
-  uint16_t tcp_sPort;
-  uint16_t tcp_dPort;
+  u_short tcp_sPort;
+  u_short tcp_dPort;
   uint32_t tcp_seq;
   uint32_t tcp_ack;
+  u_char tcp_reserved : 3;
+  u_char tcp_nonce : 1;
+  u_char tcp_header_len1 : 4;
+} TcpHead;
+  /*
   u_char tcp_Reserved : 3;
   u_char tcp_Nonce : 1;
   u_char tcp_CWR : 1;
@@ -65,7 +68,8 @@ typedef struct _TcpHead{
   uint16_t tcp_window;
   uint16_t tcp_checksum;
   uint16_t tcp_urgentP;
-} TcpHead; 
+  */
+ 
 
   //ntohs?
 
@@ -104,9 +108,8 @@ int main(int argc, char* argv[]) {
     //printf("%u bytes captured\n", header->caplen);
     
     EthHead* Eth1;
-    Eth1 = (EthHead*)malloc(sizeof(EthHead));
-    memcpy(Eth1, (EthHead*)packet, sizeof(EthHead));
-    printf("===============================\n");
+    Eth1 = (EthHead*)packet;
+    printf("==========================================\n");
     printf("eth_smac    :       ");
     for(int i=0; i<6; i++){
       if (i==5){
@@ -127,54 +130,76 @@ int main(int argc, char* argv[]) {
     }
   
 
-    if(ntohs(Eth1->type) == 0x800){
+    if(ntohs(Eth1->type) == 0x800)
+    {
       IpHead* IP1;
-      IP1 = (IpHead*)malloc(sizeof(IpHead));
-      memcpy(IP1, (IpHead*)packet, sizeof(IpHead));
+      IP1 = (IpHead*)(packet + sizeof(EthHead));
 
       printf("ip.sIP      :       ");
-      for(int i=0; i<4; i++){
-        if (i==3){
+      for(int i=0; i<4; i++)
+      {
+        if (i==3)
+        {
           printf("%d\n", IP1->ip_sIP[i]);
         }
-        else{
+        else
+        {
           printf("%d.", IP1->ip_sIP[i]);
         }
       }
 
       printf("ip.dIP      :       ");
-      for(int i=0; i<4; i++){
-        if (i==3){
+      for(int i=0; i<4; i++)
+      {
+        if (i==3)
+        {
           printf("%d\n", IP1->ip_dIP[i]);
         }
-        else{
+        else
+        {
           printf("%d.", IP1->ip_dIP[i]);
         }
 
       }
-
-    if(ntohs(IP1->ip_protocol)==0x600){
-      TcpHead* Tcp1;
-      Tcp1 = (TcpHead*)malloc(sizeof(TcpHead));
-      memcpy(Tcp1, (TcpHead*)packet, sizeof(TcpHead));
-
-      printf("Tcp.sport   :       ");
-      printf("%d\n", Tcp1->tcp_sPort);
       
-      printf("Tcp.dport   :       ");
-      printf("%d\n", Tcp1->tcp_dPort);
-    
-      free(Tcp1);
+      if(ntohs(IP1->ip_protocol)==0x600)
+      {
+        TcpHead* Tcp1;
+        Tcp1 = (TcpHead*)(packet + sizeof(EthHead) + (IP1->ip_hLength)*4);
 
+        printf("Tcp.sport   :       ");
+        printf("%d\n", ntohs(Tcp1->tcp_sPort));
+        
+        printf("Tcp.dport   :       ");
+        printf("%d\n", ntohs(Tcp1->tcp_dPort));
+      
+        u_char *payload;
+        payload = (u_char *)(packet + sizeof(EthHead) + (IP1-> ip_hLength)*4 + (Tcp1->tcp_header_len1)*4);
+        //int pay_len;
+        //pay_len = IP1->ip_tLength - int(Tcp1->tcp_header_len1)*4 - int(IP1->ip_hLength)*4;
+          if (sizeof(payload) == 0)
+          {
+            printf("NO DATA");
+          }
+          else
+          {
+            for(int i=1; payload[i-1]; i++)
+            {
+              printf("%02x", payload[i-1]);
+              if(i%16==0)
+              {
+                break;
+              }
+            }
+            printf("\n\n");
+          }
+      //free(Tcp1);
+        }
+    //free(IP1);
     }
-
-    free(IP1);
-
-      }
-    free(Eth1);
-
+    //free(Eth1);
     }
-  printf("===============================\n");
+  printf("==========================================\n");
 
   }
     
